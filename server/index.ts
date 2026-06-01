@@ -17,6 +17,7 @@ import { loggingAnomalyMiddleware } from "./middleware/loggingAnomaly";
 
 const app = express();
 const httpServer = createServer(app);
+const REQUEST_BODY_LIMIT = "256kb";
 
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", true);
@@ -71,13 +72,14 @@ app.use(
 
 app.use(
   express.json({
+    limit: REQUEST_BODY_LIMIT,
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
   })
 );
 
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false, limit: REQUEST_BODY_LIMIT }));
 app.use(loggingAnomalyMiddleware);
 
 // Nonce middleware - generates a unique cryptographic nonce per request for CSP
