@@ -167,6 +167,11 @@ export function issueToken(
   return jwt.sign(
     { sub: userId, email, role },
     secret,
-    { algorithm: "HS256", expiresIn: expiry } as jwt.SignOptions
+    {
+      subject: userId,
+      // Algorithm is hardcoded — never sourced from user input or configuration
+      algorithm: "HS256",
+      expiresIn: expiry,
+    } as jwt.SignOptions
   );
 }

@@ -1,7 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { randomInt, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import bcrypt from "bcrypt";
-import { ipKeyGenerator, rateLimit } from "express-rate-limit";
+import { rateLimit } from "express-rate-limit";
 import { eq, and, gte } from "drizzle-orm";
 import { storage } from "./storage";
 import { getDb } from "./db";
@@ -14,7 +14,7 @@ declare module "express-session" {
       id: string;
       email: string;
       name: string;
-      role: string;
+      role?: string | null;
     };
   }
 }
@@ -70,6 +70,10 @@ function normalizeRateLimitEmail(value: unknown): string {
  * Builds a stable OTP rate-limit key from the submitted email when present,
  * falling back to the client IP for malformed or incomplete requests.
  */
+function ipKeyGenerator(ip: string): string {
+  return ip;
+}
+
 export function getOtpRateLimitKey(req: Pick<Request, "body" | "ip">): string {
   const email = normalizeRateLimitEmail(req.body?.email);
 
@@ -223,12 +227,6 @@ export function createAuthRouter(): Router {
       if (existingDbUser) {
         return res.status(409).json({ message: "An account with this email already exists." });
       }
-    registeredUsers.set(email, {
-      fullName,
-      email,
-      passwordHash: hashPassword(password),
-      licenseNumber: licenseNumber,
-    });
 
       const passwordHash = hashPassword(password);
 
@@ -238,7 +236,6 @@ export function createAuthRouter(): Router {
         passwordHash,
         licenseNumber,
       });
-
 
       // Create DB user
       const [newUser] = await db

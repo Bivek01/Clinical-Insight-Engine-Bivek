@@ -1,5 +1,5 @@
 import { getDb } from "./db";
-import { and, desc, eq, ilike, or } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 
 import {
   assessments,
@@ -88,10 +88,10 @@ export class DatabaseStorage implements IStorage {
           (assessments as any).confidenceInterval ?? (assessments as any).confidence_interval,
         modelConfidence:
           (assessments as any).modelConfidence ?? (assessments as any).model_confidence,
-        createdAt:
-          (assessments as any).createdAt ?? (assessments as any).created_at,
         createdBy:
           (assessments as any).createdBy ?? (assessments as any).created_by,
+        createdAt:
+          (assessments as any).createdAt ?? (assessments as any).created_at,
         userId:
           (assessments as any).userId ?? (assessments as any).user_id,
       })
