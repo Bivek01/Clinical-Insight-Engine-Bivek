@@ -148,6 +148,14 @@ const verifyEmailLimiter = rateLimit({
   message: { error: "Too many verification attempts. Please try again later." },
 });
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 15,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Too many login/registration attempts. Please try again in 15 minutes." },
+});
+
 const resendLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   limit: 3,
