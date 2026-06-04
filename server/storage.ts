@@ -24,10 +24,17 @@ export interface IStorage {
     offset?: number
   ): Promise<Assessment[]>;
   getAssessmentById(id: number): Promise<Assessment | undefined>;
-  createAssessment(assessment: AssessmentCreateInput): Promise<Assessment>;
   createUser(data: InsertUser): Promise<User>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserById(id: string): Promise<User | undefined>;
+  getAllUsers(page: number, limit: number): Promise<{ data: User[]; total: number }>;
+  getLoginAuditLogs(page: number, limit: number): Promise<{ data: typeof loginAuditLogs.$inferSelect[]; total: number }>;
+  updateUser(id: string, data: Partial<Pick<User, "isActive" | "role">>): Promise<User>;
+  getSystemStats(): Promise<{
+    totalUsers: number;
+    totalAssessments: number;
+    riskDistribution: { category: string; count: number }[];
+  }>;
   recordLoginAudit(params: {
     userId?: string;
     ipAddress?: string;
@@ -227,6 +234,44 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getAllUsers(page: number = 1, limit: number = 20): Promise<{ data: User[]; total: number }> {
+    const db = getDb();
+    const offset = (page - 1) * limit;
+    const data = await db.select().from(users).orderBy(desc(users.createdAt)).limit(limit).offset(offset);
+    const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(users);
+    return { data, total: Number(count) };
+  }
+
+  async getLoginAuditLogs(page: number = 1, limit: number = 20): Promise<{ data: typeof loginAuditLogs.$inferSelect[]; total: number }> {
+    const db = getDb();
+    const offset = (page - 1) * limit;
+    const data = await db.select().from(loginAuditLogs).orderBy(desc(loginAuditLogs.createdAt)).limit(limit).offset(offset);
+    const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(loginAuditLogs);
+    return { data, total: Number(count) };
+  }
+
+  async updateUser(id: string, data: Partial<Pick<User, "isActive" | "role">>): Promise<User> {
+    const db = getDb();
+    const [updated] = await db.update(users).set(data).where(eq(users.id, id)).returning();
+    return updated;
+  }
+
+  async getSystemStats(): Promise<{
+    totalUsers: number;
+    totalAssessments: number;
+    riskDistribution: { category: string; count: number }[];
+  }> {
+    const db = getDb();
+    const [{ count: userCount }] = await db.select({ count: sql<number>`count(*)` }).from(users);
+    const [{ count: assessmentCount }] = await db.select({ count: sql<number>`count(*)` }).from(assessments);
+    const riskDistributionRaw = await db
+      .select({ category: assessments.riskCategory, count: sql<number>`count(*)` })
+      .from(assessments)
+      .groupBy(assessments.riskCategory);
+    return {
+      totalUsers: Number(userCount),
+      totalAssessments: Number(assessmentCount),
+      riskDistribution: riskDistributionRaw,
   async recordLoginAudit(params: {
     userId?: string;
     ipAddress?: string;

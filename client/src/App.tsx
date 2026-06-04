@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
 import History from "./pages/History";
+import AdminDashboard from "./pages/AdminDashboard";
 import Analytics from "./pages/Analytics";
 import LoginPage from "./pages/LoginPage";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -33,6 +34,11 @@ function Router() {
       <Route path="/history">
         <ProtectedRoute>
           <History />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin">
+        <ProtectedRoute requireAdmin>
+          <AdminDashboard />
         </ProtectedRoute>
       </Route>
       <Route path="/login" component={LoginPage} />
