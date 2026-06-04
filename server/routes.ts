@@ -836,20 +836,12 @@ export async function registerRoutes(
     async (req, res) => {
       try {
         const userEmail = req.session.user?.email;
-        const page = Math.max(1, parseInt(req.query.page as string) || 1);
+        const cursor = req.query.cursor ? parseInt(req.query.cursor as string, 10) : undefined;
         const limit = Math.min(
           100,
           Math.max(1, parseInt(req.query.limit as string) || 20)
         );
-        logAccessAttempt(req.session.user!.id, "Assessments", "all", true, "Exported assessments to CSV");
-        res.header("Content-Type", "text/csv");
-        res.attachment("assessments.csv");
-        return res.send(csv);
-      } catch (err) {
-        console.error("Export error:", err);
-        return res.status(500).json({ message: "Export failed" });
-        const offset = (page - 1) * limit;
-        const result = await storage.getAssessments(limit, offset, userEmail);
+        const result = await storage.getAssessments(limit, cursor && !Number.isNaN(cursor) ? cursor : undefined, userEmail);
         res.json(result);
       } catch (err) {
         return res.status(500).json({ message: "Failed to fetch assessments" });
@@ -940,8 +932,7 @@ export async function registerRoutes(
           });
         }
 
-        const { q, riskCategory, page, limit } = parseResult.data;
-        const offset = (page - 1) * limit;
+        const { q, riskCategory, cursor, limit } = parseResult.data;
         const userEmail = req.session.user?.email;
 
         if (q) {
@@ -964,7 +955,7 @@ export async function registerRoutes(
           userEmail,
           riskCategory,
           limit,
-          offset
+          cursor
         );
         logAccessAttempt(req.session.user!.id, "Assessments", "search", true, "Searched assessments");
         return res.json(results);

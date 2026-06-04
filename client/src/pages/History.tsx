@@ -62,11 +62,13 @@ export default function History() {
     document.title = "Clinical Insight Engine - Assessment History";
   }, []);
 
-  const [serverPage, setServerPage] = useState<number>(1);
+  const [cursorStack, setCursorStack] = useState<Array<number | undefined>>([undefined]);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const cursor = cursorStack[currentIndex];
   const PAGE_SIZE = 20;
-  const { data: assessmentsResponse, isLoading, error } = useAssessments(serverPage, PAGE_SIZE);
+  const { data: assessmentsResponse, isLoading, error } = useAssessments(PAGE_SIZE, cursor);
   const assessments = assessmentsResponse?.data ?? [];
-  const serverTotal = assessmentsResponse?.total ?? 0;
+f  const serverTotal = assessmentsResponse?.total ?? 0;
   const serverTotalPages = assessmentsResponse?.totalPages ?? 1;
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<string>("date-desc");
@@ -104,7 +106,8 @@ export default function History() {
 
   // Reset pagination when search/filter changes
   useEffect(() => {
-    setServerPage(1);
+    setCursorStack([undefined]);
+    setCurrentIndex(0);
   }, [searchTerm, sortBy, startDate, endDate]);
 
   useEffect(() => {
@@ -237,11 +240,7 @@ export default function History() {
   });
 
   // 4. Pagination
-  // When no client-side filters are active, pagination maps directly to server page.
-  // When filters are active, we can only search within the current server page.
-  const hasClientFilters = Boolean(searchTerm || startDate || endDate);
-  const totalRecords = hasClientFilters ? sortedAssessments.length : serverTotal;
-  const totalPages = hasClientFilters ? 1 : serverTotalPages;
+  const totalRecords = sortedAssessments.length;
   const paginatedAssessments = sortedAssessments;
 
   const formatAssessmentDate = (dateVal: any) => {
@@ -581,34 +580,26 @@ export default function History() {
             {/* Pagination Footer Elements */}
             <div className="px-4 py-4 border-t border-border bg-muted/20 flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="text-sm text-muted-foreground font-medium">
-                {hasClientFilters ? (
-                  <>
-                    Showing{" "}
-                    <span className="font-semibold text-foreground">
-                      {totalRecords}
-                    </span>{" "}
-                    match{totalRecords !== 1 ? 'es' : ''}
-                  </>
-                ) : (
-                  <>
-                    Page{" "}
-                    <span className="font-semibold text-foreground">
-                      {serverPage}
-                    </span>{" "}
-                    of{" "}
-                    <span className="font-semibold text-foreground">
-                      {totalPages}
-                    </span>{" "}
-                    ({serverTotal} record{serverTotal !== 1 ? 's' : ''} total)
-                  </>
-                )}
+                Showing{" "}
+                <span className="font-semibold text-foreground">
+                  {totalRecords === 0 ? 0 : 1}
+                </span>{" "}
+                to{" "}
+                <span className="font-semibold text-foreground">
+                  {totalRecords}
+                </span>{" "}
+                records on this page
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setServerPage(Math.max(serverPage - 1, 1))}
-                  disabled={serverPage === 1}
+                  onClick={() => {
+                    if (currentIndex > 0) {
+                      setCurrentIndex(currentIndex - 1);
+                    }
+                  }}
+                  disabled={currentIndex === 0}
                   className="inline-flex items-center justify-center p-2 rounded-xl border border-border bg-card text-foreground hover:bg-muted disabled:opacity-40 disabled:hover:bg-card transition-colors shadow-sm cursor-pointer disabled:cursor-not-allowed"
                   aria-label="Previous page"
                 >
@@ -616,15 +607,21 @@ export default function History() {
                 </button>
 
                 <div className="flex items-center gap-1 text-sm font-semibold px-2">
-                  <span className="text-foreground">Page {serverPage}</span>
-                  <span className="text-muted-foreground">/</span>
-                  <span className="text-muted-foreground">{totalPages}</span>
+                  <span className="text-foreground">Page {currentIndex + 1}</span>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => setServerPage(Math.min(serverPage + 1, totalPages))}
-                  disabled={serverPage === totalPages}
+                  onClick={() => {
+                    if (assessmentsResponse?.nextCursor) {
+                      const next = assessmentsResponse.nextCursor;
+                      if (currentIndex + 1 >= cursorStack.length) {
+                        setCursorStack([...cursorStack, next]);
+                      }
+                      setCurrentIndex(currentIndex + 1);
+                    }
+                  }}
+                  disabled={!assessmentsResponse?.nextCursor}
                   className="inline-flex items-center justify-center p-2 rounded-xl border border-border bg-card text-foreground hover:bg-muted disabled:opacity-40 disabled:hover:bg-card transition-colors shadow-sm cursor-pointer disabled:cursor-not-allowed"
                   aria-label="Next page"
                 >
