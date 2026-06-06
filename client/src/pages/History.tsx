@@ -26,6 +26,10 @@ import { FileText, RotateCw, Upload } from "lucide-react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { advancedFilter } from "@/utils/search_filters";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import RiskTrendChart from "@/components/RiskTrendChart";
+import HealthBadges from "@/components/HealthBadges";
+import { calculateHealthBadges } from "@/utils/healthBadges";
 import { validateSearchInput } from "@/validation/filterValidation";
 
 function HighlightText({ text, search }: { text: string; search: string }) {
@@ -323,6 +327,31 @@ export default function History() {
     }
   });
 
+  const latestBadgeAssessment = useMemo(() => {
+    if (sortedAssessments.length === 0) return null;
+    return (
+      sortedAssessments.find((assessment) =>
+        calculateHealthBadges(assessment, sortedAssessments).length > 0
+      ) || sortedAssessments[0]
+    );
+  }, [sortedAssessments]);
+
+  const latestBadges = useMemo(() => {
+    if (!latestBadgeAssessment) return [];
+    return calculateHealthBadges(latestBadgeAssessment, sortedAssessments);
+  }, [latestBadgeAssessment, sortedAssessments]);
+
+  const selectedPatientBadges = useMemo(() => {
+    const sortedHistory = [...selectedPatientHistory].sort(
+      (a, b) =>
+        new Date(b.createdAt || 0).getTime() -
+        new Date(a.createdAt || 0).getTime()
+    );
+
+    if (sortedHistory.length === 0) return [];
+    return calculateHealthBadges(sortedHistory[0], sortedHistory);
+  }, [selectedPatientHistory]);
+
   // 4. Pagination
   const totalRecords = sortedAssessments.length;
   const paginatedAssessments = sortedAssessments;
@@ -536,10 +565,18 @@ export default function History() {
             </p>
           </div>
        ) : (
-  <>      <AssessmentComparisonCard
-            assessments={sortedAssessments}
-          />
-          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+          <>
+            <div className="grid gap-6">
+              <HealthBadges
+                badges={latestBadges}
+                title="Latest improvement badges"
+                description="Badges earned when a patient assessment improves key metrics or lowers overall risk compared to prior records."
+              />
+              <AssessmentComparisonCard
+                assessments={sortedAssessments}
+              />
+            </div>
+            <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -728,6 +765,49 @@ export default function History() {
           </div>
         )}
       </div>
+
+      <Sheet open={!!selectedPatientName} onOpenChange={(open) => !open && setSelectedPatientName(null)}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto sm:border-l sm:border-slate-200">
+          <SheetHeader className="mb-6">
+            <SheetTitle className="text-2xl font-bold font-display">Longitudinal Trajectory</SheetTitle>
+            <p className="text-sm text-muted-foreground">Patient: <span className="font-semibold text-foreground">{selectedPatientName}</span></p>
+          </SheetHeader>
+          
+          {selectedPatientHistory.length > 0 && (
+            <div className="space-y-6 pb-12">
+              <HealthBadges
+                badges={selectedPatientBadges}
+                title="Patient improvement badges"
+                description="Track earned badges for this patient's trajectory across the selected assessments."
+              />
+              <RiskTrendChart assessments={selectedPatientHistory} />
+              
+              <div className="border border-border rounded-xl overflow-hidden shadow-sm">
+                <table className="w-full text-left text-sm border-collapse">
+                  <thead className="bg-muted/50 border-b border-border">
+                    <tr>
+                      <th className="p-3 font-semibold text-muted-foreground uppercase text-xs tracking-wider">Date</th>
+                      <th className="p-3 font-semibold text-muted-foreground uppercase text-xs tracking-wider">Risk Score</th>
+                      <th className="p-3 font-semibold text-muted-foreground uppercase text-xs tracking-wider">BMI</th>
+                      <th className="p-3 font-semibold text-muted-foreground uppercase text-xs tracking-wider">HbA1c</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {selectedPatientHistory.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).map((a) => (
+                      <tr key={a.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="p-3 whitespace-nowrap">{formatAssessmentDate(a.createdAt)}</td>
+                        <td className="p-3 font-bold text-foreground">{Number(a.riskScore).toFixed(1)}%</td>
+                        <td className="p-3">{Number(a.bmi).toFixed(1)}</td>
+                        <td className="p-3">{Number(a.hba1cLevel).toFixed(1)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </AppLayout>
   );
 }
