@@ -1,23 +1,23 @@
-import React from "react";
+type PriorityLevel = "high" | "moderate" | "monitor";
 
-type AttentionPriority = {
+interface PriorityItem {
   factor: string;
-  priority: "high" | "moderate" | "monitor";
+  priority: PriorityLevel;
   reason: string;
   value?: number;
-};
+}
 
-type AttentionNavigator = {
-  priorities: AttentionPriority[];
-};
+interface NavigatorProps {
+  priorities: PriorityItem[];
+}
 
-const PRIORITY_STYLES: Record<"high" | "moderate" | "monitor", string> = {
+const PRIORITY_STYLES: Record<PriorityLevel, string> = {
   high: "bg-rose-100 text-rose-800 border-rose-200",
   moderate: "bg-amber-100 text-amber-900 border-amber-200",
   monitor: "bg-emerald-100 text-emerald-900 border-emerald-200",
 };
 
-export function ClinicalAttentionNavigator({ navigator }: { navigator?: PriorityNavigator }) {
+export function ClinicalAttentionNavigator({ navigator }: { navigator?: NavigatorProps }) {
   if (!navigator || !navigator.priorities || navigator.priorities.length === 0) {
     return null;
   }
@@ -52,5 +52,3 @@ export function ClinicalAttentionNavigator({ navigator }: { navigator?: Priority
     </section>
   );
 }
-
-export default ClinicalAttentionNavigator;

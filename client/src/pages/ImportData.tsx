@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
 import Papa from "papaparse";
-import { UploadCloud, CheckCircle, AlertCircle, Loader2, FileText, Download, X } from "lucide-react";
-import { ApiClient } from "@/lib/apiClient";
+import { UploadCloud, CheckCircle, AlertCircle, XCircle, Loader2, FileText, Download, X, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -122,9 +121,9 @@ export default function ImportData() {
             hba1cLevel: Number(row.hba1cLevel || row.HbA1c_level),
             bloodGlucoseLevel: Number(row.bloodGlucoseLevel || row.blood_glucose_level),
           }));
-          const res = await fetch("/api/assessments/bulk", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ assessments: formattedData }) });
+          const res = await fetch("/api/assessments/bulk", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ assessments: formattedData }), credentials: "include" });
+          if (!res.ok) throw new Error("Import failed");
           const data = await res.json();
-          if (!res.ok) throw new Error(data.message || "Import failed");
           clearInterval(iv); setProgress(100); setResults(data.assessments);
           toast({ title: "Success", description: "Successfully imported " + data.count + " patient records." });
         } catch (error: any) {
