@@ -1,10 +1,11 @@
 import { useState, useRef } from "react";
 import Papa from "papaparse";
-import { UploadCloud, CheckCircle, AlertCircle, XCircle, Loader2, FileText, Download, X, ShieldCheck } from "lucide-react";
+import { UploadCloud, CheckCircle, AlertCircle, Loader2, FileText, Download, X, XCircle, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useBulkImport } from "@/hooks/use-bulk-import";
 
 const ACCEPTED_TYPES = ".csv,.xlsx,.xls";
 
@@ -63,6 +64,7 @@ function validateParsedData(rows: any[]): ValidationResult {
 }
 
 export default function ImportData() {
+  const { preview, step, parseFile, confirmImport: handleConfirm, reset, fileName } = useBulkImport();
   const { toast } = useToast();
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);

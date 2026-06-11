@@ -136,10 +136,7 @@ const scriptSrcDirective: Array<string | ((req: any, res: any) => string)> = [
   (_req: any, res: any) => `'nonce-${res.locals.cspNonce}'`,
 ];
 
-// Vite HMR requires eval in development mode
-if (process.env.NODE_ENV !== "production") {
-  scriptSrcDirective.push("'unsafe-eval'");
-}
+
 
 app.use(
   helmet({
