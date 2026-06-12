@@ -21,6 +21,18 @@ import { execFile } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
 import bcrypt from "bcrypt";
+import { api } from "@shared/routes";
+import { z } from "zod";
+import os from "os";
+import { randomUUID } from "crypto";
+import { writeFile, unlink } from "fs/promises";
+import { validateDTO } from "./middleware/validateDTO";
+import { calculateClinicalFallback, generateRequestFingerprint } from "./services/mlService";
+import { canAccessPatientRecord } from "./services/authz/patient-access";
+import { logAccessAttempt } from "./security/access-audit";
+import { sanitizeDatabaseError, analyzeSearchInput, logSecurityEvent } from "./security/sqlProtection";
+import { searchQuerySchema } from "./validation/searchValidation";
+import { assessmentsToCsv } from "./utils/csvExport";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
